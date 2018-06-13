@@ -1,2 +1,2 @@
 Intrusion Detection
-![Alt text](https://github.com/ffzhello/forensictask/pics/pic.png)
+![Alt text](https://github.com/ffzhello/forensictask/raw/master/pics/pic.png)
