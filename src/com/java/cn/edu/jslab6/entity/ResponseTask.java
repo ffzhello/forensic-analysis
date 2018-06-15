@@ -212,8 +212,8 @@ public class ResponseTask implements Comparable<ResponseTask>{
         }
 
         for (String s: rawTask.config.action.split(";")) {
-            System.out.println(s);
-            //getActions().add(Enum.valueOf(ResponseAction.class, s));
+
+           getActions().add(Enum.valueOf(ResponseAction.class, s));
         }
 
         setRawActions(rawTask.config.action);
