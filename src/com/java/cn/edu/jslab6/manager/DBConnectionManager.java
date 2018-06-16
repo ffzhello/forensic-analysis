@@ -29,6 +29,7 @@ public class DBConnectionManager {
     public DBConnectionManager() {
         try {
             systemConfig = new SystemConfig("./system.properties");
+            systemConfig.getMysqlIP();
             LOG.info("read system.properties");
         }catch (IOException e) {
             e.printStackTrace();
