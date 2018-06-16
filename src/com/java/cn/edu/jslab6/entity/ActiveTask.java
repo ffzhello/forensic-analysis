@@ -161,6 +161,7 @@ public class ActiveTask extends ResponseTask{
     public void setIpString(String ipString) {
         this.ipString = ipString;
 
+        //set ipmask
         setIpMaskList(ipString);
     }
 
