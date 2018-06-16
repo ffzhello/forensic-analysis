@@ -36,8 +36,10 @@ public class ResponseTask implements Comparable<ResponseTask>{
     private int id;
     private int ticketid;
     private List<String> ipList = new ArrayList<>();
-    private List<ResponseAction> actions = new ArrayList<>();
-    private String rawActions;
+    //响应动作
+    private String actionStr = null;
+    private List<ResponseAction> actionList = new ArrayList<>();
+
     private int priority = 5;
     private int flowDirection = 2;
     private int srcIP = 1;
@@ -50,6 +52,43 @@ public class ResponseTask implements Comparable<ResponseTask>{
     private int timelen = 300;           //采集时长(s)
     private int thresholdPkts = 20000;   //采集报文个数
     private String username = "CHAIRS";  //创建响应任务的用户名
+
+    public ResponseTask() {
+
+    }
+
+    /**
+     * @param rawTask
+     * @description 最大ip采集数目：10
+     */
+    public ResponseTask(RawResponseTask rawTask) {
+        setTicketid(Integer.parseInt(rawTask.ticketid));
+
+        if (rawTask.ipList.size() <= 10) {
+            getIpList().addAll(rawTask.ipList);
+        }else {
+            getIpList().addAll(rawTask.ipList.subList(0, 10));
+        }
+
+        for (String s: rawTask.config.action.split(";")) {
+
+            getActionList().add(Enum.valueOf(ResponseAction.class, s));
+        }
+
+        setActionStr(rawTask.config.action);
+        setPriority(Integer.parseInt(rawTask.config.priority));
+        setFlowDirection(Integer.parseInt(rawTask.config.flowDirection));
+        setSrcIP(Integer.parseInt(rawTask.config.srcIP));
+        setDstIP(Integer.parseInt(rawTask.config.dstIP));
+        setSrcPort(Integer.parseInt(rawTask.config.srcPort));
+        setDstPort(Integer.parseInt(rawTask.config.dstPort));
+        setSrcIPDstIP(Integer.parseInt(rawTask.config.srcIPDstIP));
+        setSrcPortDstPort(Integer.parseInt(rawTask.config.srcPortDstPort));
+        setProtocol(Integer.parseInt(rawTask.config.protocol));
+        setTimelen(Integer.parseInt(rawTask.config.timelen));
+        setThresholdPkts(Integer.parseInt(rawTask.config.thresholdPkts));
+        setUsername(rawTask.username);
+    }
 
     public int getId() {
         return id;
@@ -75,20 +114,31 @@ public class ResponseTask implements Comparable<ResponseTask>{
         this.ipList = ipList;
     }
 
-    public List<ResponseAction> getActions() {
-        return actions;
+    public void setActionStr(String actionStr) {
+        this.actionStr = actionStr;
+
+        if (actionStr != null) {
+            String[] actionArr = actionStr.split(";");
+            if (actionArr.length > 0) {
+                for (String ac: actionArr) {
+                    ResponseAction ra = ResponseAction.valueOf(ac);
+                    if (ra != null)
+                        actionList.add(ra);
+                }
+            }
+        }
     }
 
-    public void setActions(List<ResponseAction> actions) {
-        this.actions = actions;
+    public String getActionStr() {
+        return actionStr;
     }
 
-    public String getRawActions() {
-        return rawActions;
+    public List<ResponseAction> getActionList() {
+        return actionList;
     }
 
-    public void setRawActions(String rawActions) {
-        this.rawActions = rawActions;
+    public void setActionList(List<ResponseAction> actionList) {
+        this.actionList = actionList;
     }
 
     public int getPriority() {
@@ -194,43 +244,7 @@ public class ResponseTask implements Comparable<ResponseTask>{
         return 0;
     }
 
-    public ResponseTask() {
 
-    }
-
-    /**
-     * @param rawTask
-     * @description 最大ip采集数目：10
-     */
-    public ResponseTask(RawResponseTask rawTask) {
-        setTicketid(Integer.parseInt(rawTask.ticketid));
-
-        if (rawTask.ipList.size() <= 10) {
-            getIpList().addAll(rawTask.ipList);
-        }else {
-            getIpList().addAll(rawTask.ipList.subList(0, 10));
-        }
-
-        for (String s: rawTask.config.action.split(";")) {
-
-           getActions().add(Enum.valueOf(ResponseAction.class, s));
-        }
-
-        setRawActions(rawTask.config.action);
-        setPriority(Integer.parseInt(rawTask.config.priority));
-        setFlowDirection(Integer.parseInt(rawTask.config.flowDirection));
-        setSrcIP(Integer.parseInt(rawTask.config.srcIP));
-        setDstIP(Integer.parseInt(rawTask.config.dstIP));
-        setSrcPort(Integer.parseInt(rawTask.config.srcPort));
-        setDstPort(Integer.parseInt(rawTask.config.dstPort));
-        setSrcIPDstIP(Integer.parseInt(rawTask.config.srcIPDstIP));
-        setSrcPortDstPort(Integer.parseInt(rawTask.config.srcPortDstPort));
-        setProtocol(Integer.parseInt(rawTask.config.protocol));
-        setTimelen(Integer.parseInt(rawTask.config.timelen));
-        setThresholdPkts(Integer.parseInt(rawTask.config.thresholdPkts));
-        setUsername(rawTask.username);
-
-    }
 
     public String ipListToString() {
         StringBuilder sb = new StringBuilder();
