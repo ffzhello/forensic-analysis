@@ -1,5 +1,6 @@
-package com.java.cn.edu.jslab6.manager;
+package main.java.cn.edu.jslab6.manager;
 
+import main.java.cn.edu.jslab6.config.SystemConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -7,7 +8,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import com.java.cn.edu.jslab6.config.SystemConfig;
+
 /**
  * @author Andy
  * @date 18-6-16 上午11:09

@@ -1,7 +1,7 @@
-package com.java.cn.edu.jslab6.entity;
+package main.java.cn.edu.jslab6.entity;
 
-import com.java.cn.edu.jslab6.enums.ResponseAction;
-import com.java.cn.edu.jslab6.utils.IpUtils;
+import main.java.cn.edu.jslab6.enums.ResponseAction;
+import main.java.cn.edu.jslab6.utils.IpUtils;
 import org.pcap4j.core.PcapDumper;
 
 import java.util.ArrayList;

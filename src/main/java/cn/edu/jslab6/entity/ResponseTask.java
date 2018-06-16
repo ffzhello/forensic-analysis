@@ -1,6 +1,6 @@
-package com.java.cn.edu.jslab6.entity;
+package main.java.cn.edu.jslab6.entity;
 
-import com.java.cn.edu.jslab6.enums.ResponseAction;
+import main.java.cn.edu.jslab6.enums.ResponseAction;
 
 import java.util.ArrayList;
 import java.util.Arrays;

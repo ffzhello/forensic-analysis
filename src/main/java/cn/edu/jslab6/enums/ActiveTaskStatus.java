@@ -1,4 +1,4 @@
-package com.java.cn.edu.jslab6.enums;
+package main.java.cn.edu.jslab6.enums;
 
 /**
  * @author Andy

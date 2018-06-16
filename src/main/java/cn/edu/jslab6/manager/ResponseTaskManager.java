@@ -1,5 +1,4 @@
-package com.java.cn.edu.jslab6.manager;
-import com.google.gson.Gson;
+package main.java.cn.edu.jslab6.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,9 +9,9 @@ import java.sql.Statement;
 import java.util.Arrays;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.List;
-import com.java.cn.edu.jslab6.entity.ResponseTask;
-import com.java.cn.edu.jslab6.enums.ResponseAction;
-import com.java.cn.edu.jslab6.enums.ActiveTaskStatus;
+import main.java.cn.edu.jslab6.entity.ResponseTask;
+import main.java.cn.edu.jslab6.enums.ResponseAction;
+import main.java.cn.edu.jslab6.enums.ActiveTaskStatus;
 
 /**
  * @author Andy

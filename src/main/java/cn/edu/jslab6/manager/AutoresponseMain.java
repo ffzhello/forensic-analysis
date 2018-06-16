@@ -1,4 +1,4 @@
-package com.java.cn.edu.jslab6.manager;
+package main.java.cn.edu.jslab6.manager;
 
 /**
  * @author Andy

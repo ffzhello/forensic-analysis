@@ -1,4 +1,4 @@
-package com.java.cn.edu.jslab6.utils;
+package main.java.cn.edu.jslab6.utils;
 
 /**
  * @author Andy

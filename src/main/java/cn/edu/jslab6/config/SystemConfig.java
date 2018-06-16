@@ -1,4 +1,4 @@
-package com.java.cn.edu.jslab6.config;
+package main.java.cn.edu.jslab6.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
