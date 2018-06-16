@@ -207,9 +207,9 @@ public class ActiveTask extends ResponseTask{
             System.out.print("ip: " + ipMask.getIp());
         }
 
-        task.setActionStr("PcapCap;BroDetect");
+        task.setRawActions("PcapCap;BroDetect");
 
-        for (ResponseAction ac: task.getActionList()) {
+        for (ResponseAction ac: task.getActions()) {
             System.out.println(ac);
         }
 
