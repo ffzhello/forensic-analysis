@@ -13,7 +13,7 @@ import main.java.cn.edu.jslab6.utils.Utils;
  * @description
  */
 public class PcapResponseResult extends ResponseResult {
-    Attach attach = new Attach();
+    public Attach attach = new Attach();
     public class Attach {
         public long firstpkttime = 0;
         public long lastpkttime = 0;
