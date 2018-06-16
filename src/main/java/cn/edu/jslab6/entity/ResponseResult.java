@@ -14,18 +14,18 @@ import main.java.cn.edu.jslab6.enums.ResponseAction;
  * @description
  */
 public class ResponseResult {
-    String ticketid;
+    public String ticketid;
 
     @SerializedName("responseresult")
-    Map<ResponseAction, Boolean> actionResult = new HashMap<ResponseAction, Boolean>();
+    public Map<ResponseAction, Boolean> actionResult = new HashMap<ResponseAction, Boolean>();
 
-    ResponseFiles files = new ResponseFiles();
+    public ResponseFiles files = new ResponseFiles();
 
-    class ResponseFiles {
+    public class ResponseFiles {
         @SerializedName("filename")
-        String fileName;
+        public String fileName;
         @SerializedName("filecontent")
-        String fileContent;
+        public String fileContent;
     }
 
 
