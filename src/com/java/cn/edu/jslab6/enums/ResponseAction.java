@@ -6,7 +6,7 @@ package com.java.cn.edu.jslab6.enums;
  * @Description: 响应动作
  */
 public enum ResponseAction {
-    PcapPcap, SuricataDetect, BroDetect;
+    PcapCap, SuricataDetect, BroDetect;
 
     public String toString() {
         return name();
