@@ -9,6 +9,11 @@ public class IpMask {
     private int ip;
     private int mask;
 
+    public IpMask(int ip, int mask) {
+        this.ip = ip;
+        this.mask = mask;
+    }
+
     public void setIp(int ip) {
         this.ip = ip;
     }
