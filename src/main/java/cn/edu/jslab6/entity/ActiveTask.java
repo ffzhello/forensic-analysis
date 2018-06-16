@@ -40,9 +40,16 @@ public class ActiveTask extends ResponseTask{
     //任务上次心跳时间
     private long lastInteractTime = 0L;
 
+    //采集任务起始时间
+    private long starttime = 0;
+    private long endtime = 0;
+
     //任务采集报文的起始时间
     private long firstpkttime = 0;
     private long lastpkttime = 0;
+
+    //任务已采集到的数据包个数
+    private int numPkts = 0;
 
     //写数据包到文件
     public PcapDumper dumper = null;
@@ -140,6 +147,30 @@ public class ActiveTask extends ResponseTask{
 
     public void setLastInteractTime(long lastInteractTime) {
         this.lastInteractTime = lastInteractTime;
+    }
+
+    public void setNumPkts(int numPkts) {
+        this.numPkts = numPkts;
+    }
+
+    public int getNumPkts() {
+        return numPkts;
+    }
+
+    public void setStarttime(long starttime) {
+        this.starttime = starttime;
+    }
+
+    public long getStarttime() {
+        return starttime;
+    }
+
+    public void setEndtime(long endtime) {
+        this.endtime = endtime;
+    }
+
+    public long getEndtime() {
+        return endtime;
     }
 
     public long getFirstpkttime() {
