@@ -50,7 +50,7 @@ public class ResponseTask implements Comparable<ResponseTask>{
     private int srcPortDstPort = 0;
     private int protocol = 255;
     private int timelen = 300;           //采集时长(s)
-    private final int filesplit = 200;   //c采集部分文件切分大小(M)
+    private final int filesplit = 20;    //c采集部分文件切分大小(M)
     private int thresholdPkts = 20000;   //采集报文个数
     private String username = "CHAIRS";  //创建响应任务的用户名
 
