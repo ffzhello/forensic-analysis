@@ -12,9 +12,8 @@ import java.util.Properties;
  * @description 系统配置
  */
 public class SystemConfig {
-    private static final Logger LOG = LoggerFactory.getLogger(SystemConfig.class);
 
-       private String mysqlIP = "127.0.0.1";
+    private String mysqlIP = "127.0.0.1";
     private int mysqlPort = 3306;
     private String mysqlDatabase = "autoresponse";
     private String mysqlUsername = "root";
