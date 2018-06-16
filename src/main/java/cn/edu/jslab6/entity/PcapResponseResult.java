@@ -15,8 +15,8 @@ import main.java.cn.edu.jslab6.utils.Utils;
 public class PcapResponseResult extends ResponseResult {
     Attach attach = new Attach();
     public class Attach {
-        long firstpkttime = 0;
-        long lastpkttime = 0;
+        public long firstpkttime = 0;
+        public long lastpkttime = 0;
     }
 
     public static void main(String[] args) {
