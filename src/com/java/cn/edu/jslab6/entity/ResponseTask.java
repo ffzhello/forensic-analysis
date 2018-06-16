@@ -37,8 +37,8 @@ public class ResponseTask implements Comparable<ResponseTask>{
     private int ticketid;
     private List<String> ipList = new ArrayList<>();
     //响应动作
-    private String actionStr = null;
-    private List<ResponseAction> actionList = new ArrayList<>();
+    private String rawActions;
+    private List<ResponseAction> actions = new ArrayList<>();
 
     private int priority = 5;
     private int flowDirection = 2;
@@ -72,10 +72,10 @@ public class ResponseTask implements Comparable<ResponseTask>{
 
         for (String s: rawTask.config.action.split(";")) {
 
-            getActionList().add(Enum.valueOf(ResponseAction.class, s));
+            getActions().add(Enum.valueOf(ResponseAction.class, s));
         }
 
-        setActionStr(rawTask.config.action);
+        setRawActions(rawTask.config.action);
         setPriority(Integer.parseInt(rawTask.config.priority));
         setFlowDirection(Integer.parseInt(rawTask.config.flowDirection));
         setSrcIP(Integer.parseInt(rawTask.config.srcIP));
@@ -114,31 +114,31 @@ public class ResponseTask implements Comparable<ResponseTask>{
         this.ipList = ipList;
     }
 
-    public void setActionStr(String actionStr) {
-        this.actionStr = actionStr;
+    public void setRawActions(String rawActions) {
+        this.rawActions = rawActions;
 
-        if (actionStr != null) {
-            String[] actionArr = actionStr.split(";");
+        if (rawActions != null) {
+            String[] actionArr = rawActions.split(";");
             if (actionArr.length > 0) {
                 for (String ac: actionArr) {
                     ResponseAction ra = ResponseAction.valueOf(ac);
                     if (ra != null)
-                        actionList.add(ra);
+                        actions.add(ra);
                 }
             }
         }
     }
 
-    public String getActionStr() {
-        return actionStr;
+    public String getRawActions() {
+        return rawActions;
     }
 
-    public List<ResponseAction> getActionList() {
-        return actionList;
+    public List<ResponseAction> getActions(){
+        return actions;
     }
 
-    public void setActionList(List<ResponseAction> actionList) {
-        this.actionList = actionList;
+    public void setActions(List<ResponseAction> actions) {
+        this.actions = actions;
     }
 
     public int getPriority() {
@@ -243,8 +243,6 @@ public class ResponseTask implements Comparable<ResponseTask>{
         if (getPriority() > task.getPriority()) return -1;
         return 0;
     }
-
-
 
     public String ipListToString() {
         StringBuilder sb = new StringBuilder();
