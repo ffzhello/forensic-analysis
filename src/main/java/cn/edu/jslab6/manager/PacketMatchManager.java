@@ -150,8 +150,8 @@ public class PacketMatchManager {
 
         String sAddr = srcAddr.getHostAddress();
         String dAddr = dstAddr.getHostAddress();
-        Integer isAddr = IpUtils.ipToInt(sAddr);
-        Integer idAddr = IpUtils.ipToInt(dAddr);
+        Long isAddr = IpUtils.ipToLong(sAddr);
+        Long idAddr = IpUtils.ipToLong(dAddr);
         if (isAddr == null || idAddr == null)
             return false;
 
@@ -161,7 +161,7 @@ public class PacketMatchManager {
             return false;
 
         for (IpMask ipMask: ipMasks) {
-            int taskIp = ipMask.getIp();
+            long taskIp = ipMask.getIp();
             int taskMask = ipMask.getMask();
 
             if (0 == task.getSrcIPDstIP()) { //或
@@ -217,9 +217,9 @@ public class PacketMatchManager {
         String ip = "10.153.48.127";
         String mask = "10.153.48.0/10";
 
-        Integer ipp = IpUtils.ipToInt(ip);
+        long ipp = IpUtils.ipToLong(ip);
 
-        Integer mip = IpUtils.ipToInt(mask);
+        long mip = IpUtils.ipToLong(mask);
         Integer ma = IpUtils.getMask(mask);
 
         System.out.println((ipp & ma)==(mip & ma));
