@@ -214,10 +214,10 @@ public class ActiveTask extends ResponseTask{
 
         String[] ipArr = ipString.split(";");
         if (ipArr.length > 0) {
-            int ip =  0;
+            long ip =  0;
             int mask = 0;
             for (String str: ipArr) {
-                ip = IpUtils.ipToInt(str);
+                ip = IpUtils.ipToLong(str);
                 mask = IpUtils.getMask(str);
 
                 IpMask ipMask = new IpMask(ip,mask);
