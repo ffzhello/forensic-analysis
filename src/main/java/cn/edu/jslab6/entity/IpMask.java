@@ -6,18 +6,18 @@ package main.java.cn.edu.jslab6.entity;
  * @description Ip、掩码格式定义
  */
 public class IpMask {
-    private int ip;
+    private long ip;
     private int mask;
 
-    public IpMask(int ip, int mask) {
+    public IpMask(long ip, int mask) {
         this.ip = ip;
         this.mask = mask;
     }
 
-    public void setIp(int ip) {
+    public void setIp(long ip) {
         this.ip = ip;
     }
-    public int getIp() {
+    public long getIp() {
         return ip;
     }
 
