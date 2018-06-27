@@ -4,9 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+import main.java.cn.edu.jslab6.entity.Constant;
+import main.java.cn.edu.jslab6.utils.IpUtils;
 import main.java.cn.edu.jslab6.utils.Utils;
 import org.pcap4j.core.*;
 import org.pcap4j.packet.IllegalRawDataException;
+import org.pcap4j.packet.IpV4Packet;
 import org.pcap4j.packet.Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +17,8 @@ import org.slf4j.LoggerFactory;
 import main.java.cn.edu.jslab6.entity.ActiveTask;
 import main.java.cn.edu.jslab6.entity.PcapFileInfo;
 import main.java.cn.edu.jslab6.enums.ActiveTaskStatus;
+
+import javax.swing.text.html.parser.Entity;
 
 /**
  * @author Andy
@@ -23,24 +28,28 @@ import main.java.cn.edu.jslab6.enums.ActiveTaskStatus;
 public class PcapFileOfflineSplit implements Runnable{
     //field
     private static final Logger LOG = LoggerFactory.getLogger(PcapFileOfflineSplit.class);
-    private List<ActiveTask> activeTaskList = new ArrayList<ActiveTask>();   //待处理任务
-    private Set<Integer> forcedTaskIdSet = new HashSet<Integer>();
+    //private List<ActiveTask> activeTaskList = new ArrayList<ActiveTask>();   //待处理任务
+    //private Set<Integer> forcedTaskIdSet = new HashSet<Integer>();
+    //规则与任务的映射表
+    private Map<Long,Set> ruleToTasks = new HashMap<Long,Set>();
+    //待分离pcap文件信息
     private PcapFileInfo pcapFileInfo = null;
+
 
     public PcapFileOfflineSplit() {
         //初始化
-        initActivetaskList();
+        initRuleToTasks();
     }
 
     /**
      * 初始化系统停掉前的采集任务
      */
-    private void initActivetaskList() {
-        activeTaskList = ActiveTaskManager.getTaskListfromDB(ActiveTaskStatus.SENSORING);
-        activeTaskList.addAll(ActiveTaskManager.getTaskListfromDB(ActiveTaskStatus.FORCE));
+    private void initRuleToTasks() {
+        List<ActiveTask> activeTasks = ActiveTaskManager.getTaskListfromDB(ActiveTaskStatus.SENSORING);
+        activeTasks.addAll(ActiveTaskManager.getTaskListfromDB(ActiveTaskStatus.FORCE));
 
-        if (!activeTaskList.isEmpty()) {
-            for (ActiveTask task: activeTaskList) {
+        if (!activeTasks.isEmpty()) {
+            for (ActiveTask task: activeTasks) {
 
                 //恢复现场
                 int pCount = 0;
@@ -77,6 +86,30 @@ public class PcapFileOfflineSplit implements Runnable{
                     //创建目录
                     Utils.createDir(task);
                 }
+                //建立规则任务映射关系
+                buildRuleTotasks(task);
+            }
+        }
+    }
+
+    /**
+     * 建立规则-任务映射表
+     * @param task
+     */
+    private void buildRuleTotasks(ActiveTask task) {
+        if (task == null)
+            return;
+
+        if (!task.getIpList().isEmpty()) {
+            for (Long ip: task.getIpLongList()) {
+                Set<ActiveTask> tasks;
+                if (ruleToTasks.containsKey(ip))
+                    tasks = ruleToTasks.get(ip);
+                else
+                    tasks = new HashSet<>();
+
+                tasks.add(task);
+                ruleToTasks.put(ip,tasks);
             }
         }
     }
@@ -89,7 +122,7 @@ public class PcapFileOfflineSplit implements Runnable{
      * @throws IllegalRawDataException
      * @throws ArrayIndexOutOfBoundsException
      */
-    private void splitPcapFile(PcapFileInfo pcapFile) throws PcapNativeException, NotOpenException, IllegalRawDataException, ArrayIndexOutOfBoundsException {
+    private void splitPcapFile(PcapFileInfo pcapFile) {
         if (pcapFile == null)
             return;
 
@@ -99,62 +132,100 @@ public class PcapFileOfflineSplit implements Runnable{
 
         LOG.debug(pcapFileName + "分离开始.");
 
-        PcapHandle handle = Pcaps.openOffline(pcapFileName);
-        Packet packet ;
+        PcapHandle handle = null;
+        Packet packet;
         //限定每个文件的大小为5M
-        final int MAX_TMPFILE_SIZE = 2*1024*1024;
+        final int MAX_TMPFILE_SIZE = 2 * 1024 * 1024;
+        byte[] rawData;
+        IpV4Packet ipV4Packet;
+        IpV4Packet.IpV4Header header;
+        Long srcIp;
+        Long dstIp;
 
-        //处理离线文件中每个报文
-        Iterator<ActiveTask> iterator ;
-        ActiveTask task ;
+        try {
+            handle = Pcaps.openOffline(pcapFileName);
+            while ((packet = handle.getNextPacket()) != null) {
+                int packetSize = packet.length();
+                rawData = packet.getRawData();
+                int v4HeaderLength = Integer.parseInt(Integer.toHexString(rawData[0]).charAt(1) + "") * 4;
+                ipV4Packet = IpV4Packet.newPacket(rawData, 0, v4HeaderLength);
+                header = ipV4Packet.getHeader();
 
-        while ((packet = handle.getNextPacket()) != null) {
-            int packetSize = packet.length();
-            iterator = activeTaskList.iterator();
-            while (iterator.hasNext()) {
-                task = iterator.next();
-                if (PacketMatchManager.isMatch(handle, packet, task)) {
-                    //判断当前文件是否达到容量上限
-                    int tmpFileSize = task.getTmpFileSize();
-                    if (tmpFileSize + packetSize > MAX_TMPFILE_SIZE) {
-                        //关闭dumper
-                        if (task.dumper != null) {
-                            task.dumper.close();
-                            task.dumper = null;
+                srcIp = IpUtils.ipToLong(header.getSrcAddr().getHostAddress());
+                dstIp = IpUtils.ipToLong(header.getDstAddr().getHostAddress());
+
+                //匹配任务
+                Set<ActiveTask> packetTaskSet = new HashSet<>();
+                if (ruleToTasks.containsKey(srcIp)) {
+                    packetTaskSet.addAll(ruleToTasks.get(srcIp));
+                }
+                if (ruleToTasks.containsKey(dstIp)) {
+                    packetTaskSet.addAll(ruleToTasks.get(dstIp));
+                }
+
+                //写入
+                if (!packetTaskSet.isEmpty()) {
+                    for (ActiveTask task : packetTaskSet) {
+                        //判断任务是否达到采集上限
+                        int sensorBytes = task.getSensorBytes();
+                        if (sensorBytes >= Constant.MAX_TASK_SIZE) {
+                            continue;
+                        }
+
+                        //判断当前文件是否达到上限
+                        int tmpFileSize = task.getTmpFileSize();
+                        if (tmpFileSize + packetSize > Constant.MAX_TMP_FILE_SIZE) {
+                            //关闭dumper
+                            if (task.dumper != null) {
+                                task.dumper.close();
+                                task.dumper = null;
+                            }
+
+                            if (task.dumper == null) {
+                                int patFileCount = task.getPatFileCount();
+                                task.setPatFileCount(++patFileCount);
+                                String tmpFilename = task.getDirPath() + "PAT" + String.valueOf(patFileCount) + ".pcap";
+                                task.setTmpFilename(tmpFilename);
+                                task.setTmpFileSize(0);
+                                task.dumper = handle.dumpOpen(tmpFilename);
+                            }
+                            task.dumper.dump(packet, handle.getTimestamp());
+                            tmpFileSize = task.getTmpFileSize();
+                            task.setTmpFileSize(tmpFileSize + packetSize);
+                            task.setSensorBytes(sensorBytes + packetSize);
                         }
                     }
-                    if (task.dumper == null) {
-                        int patFileCount = task.getPatFileCount();
-                        task.setPatFileCount(++ patFileCount);
-                        String tmpFilename = task.getDirPath() + "PAT" + String .valueOf(patFileCount) + ".pcap";
-                        task.setTmpFilename(tmpFilename);
-                        task.setTmpFileSize(0);
-                        task.dumper = handle.dumpOpen(tmpFilename);
+
+                }
+            }
+        } catch (PcapNativeException e) {
+            LOG.debug("PcapNativeException...");
+        } catch (NotOpenException e) {
+            LOG.debug("NotOpenException...");
+        } catch (IllegalRawDataException e) {
+            LOG.debug("IllegalRawDataException...");
+        } catch (ArrayIndexOutOfBoundsException e) {
+            LOG.debug("ArrayIndexOutOfBoundsException...");
+        } finally {
+            //关闭dumper
+            if (!ruleToTasks.isEmpty()) {
+                for (Map.Entry<Long,Set> entry: ruleToTasks.entrySet()) {
+                    Set<ActiveTask> set = entry.getValue();
+                    for (ActiveTask t: set) {
+                        if (t.dumper != null) {
+                            t.dumper.close();
+                            t.dumper = null;
+                        }
                     }
-                    task.dumper.dump(packet, handle.getTimestamp());
-                    tmpFileSize = task.getTmpFileSize();
-                    task.setTmpFileSize(tmpFileSize + packetSize);
-                    int count = task.getNumPkts();
-                    task.setNumPkts(++count);
-                    long pktTime = handle.getTimestamp().getTime()/1000;
-                    if (count == 1)
-                        task.setFirstpkttime(pktTime);
-                    task.setLastpkttime(pktTime);
                 }
             }
-        }
-        //关闭dumper
-        if(!(activeTaskList.isEmpty())) {
-            for(ActiveTask t: activeTaskList) {
-                if(t.dumper != null) {
-                    t.dumper.close();
-                    t.dumper = null;
-                }
+            //关闭handle
+            if (handle != null) {
+                handle.close();
             }
+            LOG.debug(pcapFileName + "分离结束...");
+
         }
-        //关闭handle
-        handle.close();
-        LOG.debug(pcapFileName + "分离结束...");
     }
 
     /**
@@ -205,7 +276,9 @@ public class PcapFileOfflineSplit implements Runnable{
         ah.forcedTaskDetect(task);
 
         //处理
+        task.setStatus(ActiveTaskStatus.FINISHED.getValue());
         ActiveTaskManager.updateActiveTaskStatusByTaskId(task.getId(), ActiveTaskStatus.FINISHED);
+        LOG.debug("任务[id:" + task.getId() + "]停止成功.");
     }
 
     /**
@@ -216,99 +289,75 @@ public class PcapFileOfflineSplit implements Runnable{
 
         while(true) {
             //从数据库读取强制结束的任务
-            forcedTaskIdSet = ActiveTaskManager.getForceTaskIdSetFromDB();
+
+            Set<Integer> forcedTaskIdSet = ActiveTaskManager.getForceTaskIdSetFromDB();
             if (!forcedTaskIdSet.isEmpty()) {
-                if(!activeTaskList.isEmpty()) {
-                    Iterator<ActiveTask> it = activeTaskList.iterator();
-                    while (it.hasNext()) {
-                        ActiveTask at = it.next();
-                        //去除内存中需要强制停止的任务
-                        if (forcedTaskIdSet.contains(at.getId())) {
-                            try {
-                                handlerForceTask(at);
-                                LOG.debug("任务[id: " + at.getId()  + "]强制停止成功.");
-                            }catch (IOException e) {
-                                LOG.debug("任务[id: " + at.getId()  + "]强制停止失败...");
+                LOG.debug("共有" + forcedTaskIdSet.size() + "个任务待停止.");
+                for (Iterator<Map.Entry<Long,Set>> iterator = ruleToTasks.entrySet().iterator(); iterator.hasNext(); ) {
+                    Map.Entry<Long,Set> entry = iterator.next();
+                    Set<ActiveTask> taskSet = entry.getValue();
+                    for (Iterator<ActiveTask> taskIterator = taskSet.iterator(); taskIterator.hasNext(); ) {
+                        ActiveTask task = taskIterator.next();
+                        if (forcedTaskIdSet.contains(task.getId())) {
+                            if (task.getStatus() == ActiveTaskStatus.FINISHED.getValue()) {
+                                try {
+                                    handlerForceTask(task);
+                                } catch (IOException e) {
+                                    LOG.debug("FORCE IOException...");
+                                }
                             }
-                            forcedTaskIdSet.remove(at.getId());
-                            it.remove();
+                            taskIterator.remove();
                         }
                     }
-                }
-                //通过任务ID更新数据库
-                for (Integer in: forcedTaskIdSet) {
-                    ActiveTaskManager.updateActiveTaskStatusByTaskId(in, ActiveTaskStatus.FINISHED);
+                    //若规则无任务映射，则删除
+                    if (taskSet.isEmpty())
+                        iterator.remove();
                 }
             }
-
-            /*
-            //从数据库中取新的pcap文件
-            List<PcapFileInfo> fileList = PcapFileManager.getUnhanlderedPcapFilefromDB();
-            pcapFileList.addAll(fileList);
-            */
 
             pcapFileInfo =  PcapFileManager.getUnhandlerPcapFile();
 
             //从数据库中读取等待执行的任务,并创建存储目录
             List<ActiveTask> taskList = ActiveTaskManager.getTaskListfromDB(ActiveTaskStatus.WAIT_SENSOR);
             Utils.createDir(taskList);
-            activeTaskList.addAll(taskList);
+
+            //build rule
+            if (!taskList.isEmpty()) {
+                for (ActiveTask task: taskList) {
+                    buildRuleTotasks(task);
+                }
+            }
+
 
             if(pcapFileInfo != null) {
                 //以文件为单位心跳
-                if (!(activeTaskList.isEmpty())) {
-                    try {
-                        //离线分离
-                        splitPcapFile(pcapFileInfo);
-                    } catch (PcapNativeException e) {
-                        LOG.debug("pcap native exception...");
-                        e.printStackTrace();
-                    } catch (NotOpenException e) {
-                        LOG.debug("not open exception...");
-                        e.printStackTrace();
-                    } catch (IllegalRawDataException e) {
-                        LOG.debug("illegal raw data exception...");
-                        e.printStackTrace();
-                    }catch (ArrayIndexOutOfBoundsException e) {
-                        LOG.debug("array index out of bounds exception...");
-                        e.printStackTrace();
-                    } finally {
-                        /*
-                        //删除系统中的pcap文件
-                        String filePath = file.getFilepath();
-                        File f = new File(filePath);
-                        if (f != null)
-                            f.delete();
-                        */
-                    }
+                if (!ruleToTasks.isEmpty()) {
+                    //离线分离
+                    splitPcapFile(pcapFileInfo);
                 }
                 //更新数据库中pcap文件信息
                 PcapFileManager.updatePcapFileInfoFromDB(pcapFileInfo.getId());
-                pcapFileInfo = null;
+                //删除系统中的pcap文件
+                String filePath = pcapFileInfo.getFilepath();
+                File f = new File(filePath);
+                if (f != null)
+                    f.delete();
 
             }
             //心跳反应
-            if (!activeTaskList.isEmpty()) {
-                for (ActiveTask at: activeTaskList) {
-                    if (at.getMegedPatFileCount() < at.getPatFileCount()) {
-                        try {
-                            interactWithChairs(at);
-                            resetActivetask(at);
-                            LOG.debug("文件周期：任务[id: " + at.getId() + "]心跳成功.");
-                        } catch (IOException e) {
-                            LOG.debug("文件周期：任务[id: " + at.getId() + "]心跳失败......");
-                        }
-                    }else {
-                        //以时间为周期心跳
-                        long currentTime = System.currentTimeMillis()/1000;
-                        if (currentTime - at.getLastInteractTime() > 300) {
-                            try {
-                                interactWithChairs(at);
-                                //心跳反应完成，任务采集重置
-                                resetActivetask(at);
-                                LOG.debug("时间周期：任务[id: " + at.getId() + "]心跳成功.");
-                            }catch (IOException e) {
-                                LOG.debug("时间周期：任务[id: " + at.getId() + "]心跳失败......");
+            if (!ruleToTasks.isEmpty()) {
+                for (Map.Entry<Long,Set> entry: ruleToTasks.entrySet()) {
+                    Set<ActiveTask> tasks = entry.getValue();
+                    if (!tasks.isEmpty()) {
+                        for (ActiveTask activeTask: tasks) {
+                            if (activeTask.getMegedPatFileCount() < activeTask.getPatFileCount()) {
+                                try {
+                                    interactWithChairs(activeTask);
+                                    resetActivetask(activeTask);
+                                    LOG.debug("任务[id:" + activeTask.getId() + "]心跳成功.");
+                                } catch (IOException e) {
+                                    LOG.debug("任务[id:" + activeTask.getId() + "]心跳异常...");
+                                }
                             }
                         }
                     }
