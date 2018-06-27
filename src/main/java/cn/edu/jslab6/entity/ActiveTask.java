@@ -58,6 +58,10 @@ public class ActiveTask extends ResponseTask{
 
     private List<Long> ipLongList = new ArrayList<>();
 
+    public PcapResponseResult pcapResponseResult = null;
+
+    public ResponseResult responseResult = null;
+
     public ActiveTask () {
 
     }
