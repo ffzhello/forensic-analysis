@@ -3,6 +3,10 @@ package main.java.cn.edu.jslab6.manager;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import main.java.cn.edu.jslab6.entity.Constant;
 import main.java.cn.edu.jslab6.utils.IpUtils;
@@ -18,8 +22,6 @@ import main.java.cn.edu.jslab6.entity.ActiveTask;
 import main.java.cn.edu.jslab6.entity.PcapFileInfo;
 import main.java.cn.edu.jslab6.enums.ActiveTaskStatus;
 
-import javax.swing.text.html.parser.Entity;
-
 /**
  * @author Andy
  * @date 18-6-16 下午5:27
@@ -34,6 +36,8 @@ public class PcapFileOfflineSplit implements Runnable{
     private Map<Long,Set> ruleToTasks = new HashMap<Long,Set>();
     //待分离pcap文件信息
     private PcapFileInfo pcapFileInfo = null;
+    //线程池
+    private ExecutorService executorService = Executors.newCachedThreadPool();
 
 
     public PcapFileOfflineSplit() {
@@ -228,38 +232,7 @@ public class PcapFileOfflineSplit implements Runnable{
         }
     }
 
-    /**
-     * 重置采集任务
-     * @param task
-     */
-    private void resetActivetask(ActiveTask task) {
-        //更新采集任务,采集报文数
-        ActiveTaskManager.updateActiveTaskByTask(task);
-
-        //初始化内存中任务
-        long time = System.currentTimeMillis()/1000;
-        task.setLastInteractTime(time);
-        task.setTmpFilename("");
-        task.setTmpFileSize(0);
-        task.setMegFilename("");
-
-    }
-
-    /**
-     * @param activeTask
-     * @throws IOException
-     */
-    private void interactWithChairs(ActiveTask activeTask) throws IOException{
-        if(activeTask == null)
-            return;
-
-        //离线IDS
-        ActionHandler actionHandler = new ActionHandler();
-        if (actionHandler != null)
-            actionHandler.inteactWithChairs(activeTask);
-    }
-
-    /**
+     /**
      * 任务强制停止后的处理
      * @param task
      */
@@ -270,10 +243,6 @@ public class PcapFileOfflineSplit implements Runnable{
 
         //合并merge文件
         PcapFileManager.mergePcapfiles(task, false);
-
-        //离线IDS
-        ActionHandler ah = new ActionHandler();
-        ah.forcedTaskDetect(task);
 
         //处理
         task.setStatus(ActiveTaskStatus.FINISHED.getValue());
@@ -343,25 +312,42 @@ public class PcapFileOfflineSplit implements Runnable{
                 if (f != null)
                     f.delete();
 
-            }
-            //心跳反应
-            if (!ruleToTasks.isEmpty()) {
-                for (Map.Entry<Long,Set> entry: ruleToTasks.entrySet()) {
-                    Set<ActiveTask> tasks = entry.getValue();
-                    if (!tasks.isEmpty()) {
-                        for (ActiveTask activeTask: tasks) {
-                            if (activeTask.getMegedPatFileCount() < activeTask.getPatFileCount()) {
-                                try {
-                                    interactWithChairs(activeTask);
-                                    resetActivetask(activeTask);
-                                    LOG.debug("任务[id:" + activeTask.getId() + "]心跳成功.");
-                                } catch (IOException e) {
-                                    LOG.debug("任务[id:" + activeTask.getId() + "]心跳异常...");
+                Set<ActiveTask> tasks = new HashSet<>();
+                if (!ruleToTasks.isEmpty()) {
+                    for (Map.Entry<Long,Set> entry: ruleToTasks.entrySet()) {
+                        Set<ActiveTask> taskSet = entry.getValue();
+                        if (!taskSet.isEmpty()) {
+                            for (ActiveTask at: taskSet) {
+                                if (at.getMegedPatFileCount() < at.getPatFileCount()) {
+                                    tasks.add(at);
                                 }
                             }
                         }
                     }
                 }
+
+                int fCount = tasks.size();
+                LOG.debug("文件周期匹配任务个数: " + fCount);
+
+                if (fCount > 0) {
+                    CountDownLatch countDownLatch = new CountDownLatch(fCount);
+                    for (ActiveTask task: tasks) {
+                        ConcurrentDetection concurrentDetection = new ConcurrentDetection(task, countDownLatch);
+                        executorService.execute(concurrentDetection);
+                    }
+
+                    try {
+                        countDownLatch.await();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    //回送结果给chairs
+                    if (!tasks.isEmpty()) {
+                        for (ActiveTask task: tasks)
+                            ActionHandler.returnResults(task);
+                    }
+                }
+
             }
         }
     }
