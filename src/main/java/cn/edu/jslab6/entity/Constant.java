@@ -9,4 +9,7 @@ public final class Constant {
 
     //限制TMP文件的最大2M
     public static final int MAX_TMP_FILE_SIZE = 2 * 1024 * 1024;
+
+    //限制每个采集任务最大采集12M
+    public static final int MAX_TASK_SIZE = 12 * 1024 * 1024;
 }
