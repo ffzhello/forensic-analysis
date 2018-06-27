@@ -49,15 +49,25 @@ public class ActiveTask extends ResponseTask{
     private long lastpkttime = 0;
 
     //任务已采集到的数据包个数
-    private int numPkts = 0;
+    private int sensorBytes = 0;
 
     //写数据包到文件
     public PcapDumper dumper = null;
 
     private List<IpMask> ipMaskList = new ArrayList<IpMask>();
 
+    private List<Long> ipLongList = new ArrayList<>();
+
     public ActiveTask () {
 
+    }
+
+    public int getSensorBytes() {
+        return sensorBytes;
+    }
+
+    public void setSensorBytes(int sensorBytes) {
+        this.sensorBytes = sensorBytes;
     }
 
 
@@ -149,14 +159,6 @@ public class ActiveTask extends ResponseTask{
         this.lastInteractTime = lastInteractTime;
     }
 
-    public void setNumPkts(int numPkts) {
-        this.numPkts = numPkts;
-    }
-
-    public int getNumPkts() {
-        return numPkts;
-    }
-
     public void setStarttime(long starttime) {
         this.starttime = starttime;
     }
@@ -191,9 +193,22 @@ public class ActiveTask extends ResponseTask{
 
     public void setIpString(String ipString) {
         this.ipString = ipString;
+        //set iplist
+        String[] ipArr;
+        if (ipString.contains(";")) {
+            ipArr = ipString.split(";");
+        }else {
+            ipArr = new String[]{ipString};
+        }
 
-        //set ipmask
-        setIpMaskList(ipString);
+        for (String ip: ipArr) {
+            Long ipLong = IpUtils.ipToLong(ip);
+            ipLongList.add(ipLong);
+        }
+    }
+
+    public List<Long> getIpLongList() {
+        return ipLongList;
     }
 
     public String getIpString() {
